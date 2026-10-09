@@ -115,7 +115,7 @@ export async function handler(event) {
       request = {
         systemInstruction: {parts: [{text: payload.messages.filter(m => m.role === "system").map(m => m.content).join("\n")} ]},
         contents: payload.messages.filter(m => m.role !== "system").map(m => ({role: m.role === "assistant" ? "model" : "user", parts: [{text: m.content}]})),
-        generationConfig: {responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: 2048, thinkingConfig: {thinkingBudget: 0}},
+        generationConfig: {responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: 2048, ...(model.startsWith("gemini-2.5-") ? {thinkingConfig: {thinkingBudget: 0}} : {})},
       };
     }
     const response = await fetch(endpoint, {method: "POST", headers, signal: AbortSignal.timeout(25000), body: JSON.stringify(request)});
