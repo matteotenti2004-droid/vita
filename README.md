@@ -61,3 +61,7 @@ Nel cloud si usa Chromium gi√† installato in `/usr/bin/chromium`; altrove si pu√
 - AI: chiave del fornitore AI solo nella funzione server, verifica della sessione Supabase, contesto limitato e limite di richieste per utente nella singola istanza della funzione. Nessuna chiave segreta nel bundle.
 - Prodotti: solo HTTPS pubblico, porte standard, verifica DNS e indirizzi pubblici, connessione fissata all'indirizzo verificato, verifica TLS, controlli ripetuti sui redirect, limiti di tempo e dimensione. Gli URL non consentiti non vengono visitati.
 - Calcoli, profilo e preferenze non richiedono servizi terzi. I promemoria sono nel sito, senza push o email automatiche. Viaggi, allenamenti e budget non sono collegati a conti bancari o servizi di prenotazione.
+
+## Hosting Vercel
+
+Supportato tramite `api/` e `vercel.json`, con gli stessi handler server di Netlify. Segui [la guida Vercel](docs/VERCEL.md) per trasferire il sito mantenendo account e database.

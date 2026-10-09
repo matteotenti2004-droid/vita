@@ -1,0 +1,24 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/config.js": { "maxDuration": 30 },
+    "api/assistant.js": { "maxDuration": 60 },
+    "api/product.js": { "maxDuration": 60 }
+  },
+  "rewrites": [
+    { "source": "/.netlify/functions/config", "destination": "/api/config" },
+    { "source": "/.netlify/functions/assistant", "destination": "/api/assistant" },
+    { "source": "/.netlify/functions/product", "destination": "/api/product" }
+  ],
+  "headers": [{
+    "source": "/(.*)",
+    "headers": [
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+      { "key": "X-Frame-Options", "value": "DENY" },
+      { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+    ]
+  }]
+}
