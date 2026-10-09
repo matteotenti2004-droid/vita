@@ -1,0 +1,52 @@
+// Valori indicativi per 100 g, alimenti generici. Per prodotti specifici usare l'etichetta.
+export const foods = [
+  ["Fiocchi di avena", 389, 16.9, 66.3, 6.9],
+  ["Latte parzialmente scremato", 46, 3.3, 4.8, 1.6],
+  ["Yogurt greco 0%", 59, 10.3, 3.6, 0.4],
+  ["Yogurt bianco intero", 61, 3.5, 4.7, 3.3],
+  ["Banana", 89, 1.1, 22.8, 0.3],
+  ["Mela", 52, 0.3, 13.8, 0.2],
+  ["Arancia", 47, 0.9, 11.8, 0.1],
+  ["Fragole", 32, 0.7, 7.7, 0.3],
+  ["Pane integrale", 247, 13, 41, 4.2],
+  ["Pane bianco", 265, 9, 49, 3.2],
+  ["Riso bianco crudo", 365, 7.1, 80, 0.7],
+  ["Riso bianco cotto", 130, 2.7, 28.2, 0.3],
+  ["Pasta cruda", 371, 13, 74.7, 1.5],
+  ["Pasta cotta", 158, 5.8, 30.9, 0.9],
+  ["Petto di pollo crudo", 120, 22.5, 0, 2.6],
+  ["Petto di pollo cotto", 165, 31, 0, 3.6],
+  ["Uovo intero", 143, 12.6, 0.7, 9.5],
+  ["Salmone crudo", 208, 20.4, 0, 13.4],
+  ["Tonno al naturale sgocciolato", 116, 25.5, 0, 0.8],
+  ["Lenticchie cotte", 116, 9, 20.1, 0.4],
+  ["Ceci cotti", 164, 8.9, 27.4, 2.6],
+  ["Tofu", 76, 8, 1.9, 4.8],
+  ["Patate lesse", 87, 1.9, 20.1, 0.1],
+  ["Broccoli", 34, 2.8, 6.6, 0.4],
+  ["Zucchine", 17, 1.2, 3.1, 0.3],
+  ["Pomodori", 18, 0.9, 3.9, 0.2],
+  ["Carote", 41, 0.9, 9.6, 0.2],
+  ["Avocado", 160, 2, 8.5, 14.7],
+  ["Olio extravergine di oliva", 884, 0, 0, 100],
+  ["Mandorle", 579, 21.2, 21.6, 49.9],
+  ["Noci", 654, 15.2, 13.7, 65.2],
+  ["Burro di arachidi", 588, 25, 20, 50],
+  ["Parmigiano", 392, 35.8, 3.2, 25.8],
+  ["Mozzarella", 280, 18, 2.2, 22],
+  ["Cioccolato fondente", 598, 7.8, 45.9, 42.6],
+].map(([name, kcal, protein, carbs, fat]) => ({
+  name,
+  kcal,
+  protein,
+  carbs,
+  fat,
+}));
+export function portion(food, grams) {
+  return Object.fromEntries(
+    ["kcal", "protein", "carbs", "fat"].map((k) => [
+      k,
+      Math.round(((food[k] * grams) / 100) * 10) / 10,
+    ]),
+  );
+}
