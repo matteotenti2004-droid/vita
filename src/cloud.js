@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { authError } from "./auth-errors.js";
 import { initial, normalize, persist } from "./store.js";
 export const cloud = {
+  aiProvider: "AI",
   client: null,
   user: null,
   status: "local",
@@ -28,6 +29,7 @@ export async function initCloud(callback) {
       return;
     }
     const c = await r.json();
+    cloud.aiProvider = c.aiProvider === "Gemini" ? "Gemini" : "OpenAI";
     if (!c.supabaseUrl || !c.supabaseKey) {
       cloud.error =
         c.diagnostics?.message ||

@@ -1,6 +1,6 @@
 # Attiva account, sincronizzazione e assistente VYRA
 
-Le nuove sezioni funzionano già nel browser. Per accesso email e AI servono due servizi esterni: Supabase e OpenAI. Non inviare password o chiavi segrete in chat e non inserirle nei file GitHub.
+Le nuove sezioni funzionano già nel browser. Per accesso email e AI servono due servizi esterni: Supabase e un fornitore AI. Non inviare password o chiavi segrete in chat e non inserirle nei file GitHub.
 
 ## 1. Crea il servizio account su Supabase
 
@@ -25,7 +25,17 @@ Le nuove sezioni funzionano già nel browser. Per accesso email e AI servono due
 
 Sono lette a runtime dalle funzioni: non servono prefissi `VITE_`. La chiave pubblicabile è per definizione visibile al browser; la protezione dei dati dipende dalle policy SQL del passaggio 1.
 
-## 3. Attiva OpenAI
+## 3. Attiva Gemini con il piano gratuito
+
+1. Apri [Google AI Studio](https://aistudio.google.com/api-keys), accedi con Google e crea una chiave API in un progetto con piano gratuito disponibile. Non attivare fatturazione a pagamento per questo percorso.
+2. Su Netlify → Environment variables aggiungi `GEMINI_API_KEY` con la chiave completa, scope **Functions**, contesto **Production**. Non inviarla in chat.
+3. Aggiungi `VYRA_AI_PROVIDER` con valore `gemini`, stesso scope e contesto. Questa scelta esclude OpenAI anche se la vecchia chiave resta presente.
+4. Il modello predefinito è `gemini-2.5-flash`; puoi scegliere un modello compatibile tramite `VYRA_GEMINI_MODEL`.
+5. Esegui **Deploys → Trigger deploy → Deploy project**, attendi **Published**, aggiorna il sito e prova l'assistente.
+
+Il piano gratuito dipende da modello, paese e account; quote e disponibilità possono cambiare. Controlla [prezzi e condizioni](https://ai.google.dev/gemini-api/docs/pricing) e [limiti](https://ai.google.dev/gemini-api/docs/rate-limits). Nel piano gratuito i contenuti possono essere usati da Google per migliorare i prodotti: evita dati sensibili e deseleziona la condivisione di attività/obiettivi se preferisci. Al raggiungimento della quota VYRA mostra un errore, senza passare automaticamente a OpenAI.
+
+### Alternativa OpenAI a pagamento
 
 1. Apri [platform.openai.com/api-keys](https://platform.openai.com/api-keys) nel tuo account OpenAI.
 2. Abilita il credito/API se necessario: l'abbonamento ChatGPT non include automaticamente l'utilizzo delle API.

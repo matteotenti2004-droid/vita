@@ -16,7 +16,7 @@ VYRA è l'evoluzione di Vita: dashboard in italiano, menu laterale blu notte, ac
 - **Statistiche:** grafici di tempo, risparmi netti, allenamenti, abitudini, calorie e progresso degli obiettivi; intervalli di 7, 30 e 90 giorni. Solo dati registrati. Il tempo delle attività entra nello storico al completamento; le vecchie attività senza data di completamento sono escluse.
 - **Profilo e impostazioni:** nome, biografia, foto ridimensionata, tema chiaro/scuro/sistema, quattro palette, esportazione/importazione JSON.
 - **Account:** Supabase Auth email/password, registrazione, conferma email, recupero password e sincronizzazione dell'intero spazio. Cache distinta per utente, dati ospite separati, controllo delle revisioni per evitare sovrascritture silenziose tra dispositivi. I dati di Vita si importano nell'account solo con conferma.
-- **Assistente OpenAI:** domande rapide, contesto di attività/obiettivi facoltativo e proposte strutturate di attività da confermare. Non esegue acquisti, prenotazioni o modifiche autonome. La conversazione resta nella memoria della pagina, senza essere archiviata nel database.
+- **Assistente Gemini / OpenAI:** domande rapide, contesto di attività/obiettivi facoltativo e proposte strutturate di attività da confermare. Non esegue acquisti, prenotazioni o modifiche autonome. La conversazione resta nella memoria della pagina, senza essere archiviata nel database.
 
 ## Pubblicazione su Netlify
 
@@ -58,6 +58,6 @@ Nel cloud si usa Chromium già installato in `/usr/bin/chromium`; altrove si pu�
 
 - Modalità ospite: `localStorage`, chiave `vyra-v2`. La copia precedente `vita-v1` resta intatta.
 - Account: cache locale per UUID e tabella `user_spaces` con Row Level Security. Accesso tramite chiave pubblicabile/anon, mai `service_role`. Sincronizzazione al salvataggio; su un altro dispositivo ricaricare la pagina per recuperare le modifiche remote. Le modifiche offline sono conservate localmente; il profilo permette di risolverle quando la connessione torna.
-- AI: chiave OpenAI solo nella funzione server, verifica della sessione Supabase, contesto limitato e limite di richieste per utente nella singola istanza della funzione. Nessuna chiave segreta nel bundle.
+- AI: chiave del fornitore AI solo nella funzione server, verifica della sessione Supabase, contesto limitato e limite di richieste per utente nella singola istanza della funzione. Nessuna chiave segreta nel bundle.
 - Prodotti: solo HTTPS pubblico, porte standard, verifica DNS e indirizzi pubblici, connessione fissata all'indirizzo verificato, verifica TLS, controlli ripetuti sui redirect, limiti di tempo e dimensione. Gli URL non consentiti non vengono visitati.
 - Calcoli, profilo e preferenze non richiedono servizi terzi. I promemoria sono nel sito, senza push o email automatiche. Viaggi, allenamenti e budget non sono collegati a conti bancari o servizi di prenotazione.

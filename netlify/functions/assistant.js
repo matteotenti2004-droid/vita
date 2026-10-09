@@ -12,10 +12,12 @@ export async function handler(event) {
       return json(400, {
         error: "Inserisci una domanda di massimo 2000 caratteri.",
       });
-    if (!process.env.VYRA_AI_API_KEY)
+    const gemini = process.env.VYRA_AI_PROVIDER === "gemini" || (!process.env.VYRA_AI_PROVIDER && Boolean(process.env.GEMINI_API_KEY));
+    const provider = gemini ? "Gemini" : "OpenAI";
+    if (!(gemini ? process.env.GEMINI_API_KEY : process.env.VYRA_AI_API_KEY))
       return json(503, {
         error:
-          "OpenAI deve ancora essere attivato dal proprietario del sito. La chiave va configurata nelle variabili protette di Netlify.",
+          `${provider} deve ancora essere attivato dal proprietario del sito. La chiave va configurata nelle variabili protette di Netlify.`,
       });
     const user = await authenticatedUser(event);
     rateLimit("ai:" + user.id);
@@ -51,14 +53,7 @@ export async function handler(event) {
           )
           .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }))
       : [];
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + process.env.VYRA_AI_API_KEY,
-      },
-      signal: AbortSignal.timeout(25000),
-      body: JSON.stringify({
+    const payload = {
         model: process.env.VYRA_AI_MODEL || "gpt-4o-mini",
         max_tokens: 1000,
         messages: [
@@ -106,19 +101,34 @@ export async function handler(event) {
             },
           },
         },
-      }),
-    });
+      };
+    let endpoint = "https://api.openai.com/v1/chat/completions";
+    let headers = { "Content-Type": "application/json", Authorization: "Bearer " + process.env.VYRA_AI_API_KEY };
+    let request = payload;
+    if (gemini) {
+      const model = process.env.VYRA_GEMINI_MODEL || "gemini-2.5-flash";
+      if (!/^[a-zA-Z0-9._-]+$/.test(model)) return json(503, {error: "Il modello Gemini configurato non è valido."});
+      endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      headers = {"Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY};
+      const schema = JSON.parse(JSON.stringify(payload.response_format.json_schema.schema), (key, value) => key === "additionalProperties" ? undefined : value);
+      request = {
+        systemInstruction: {parts: [{text: payload.messages.filter(m => m.role === "system").map(m => m.content).join("\n")} ]},
+        contents: payload.messages.filter(m => m.role !== "system").map(m => ({role: m.role === "assistant" ? "model" : "user", parts: [{text: m.content}]})),
+        generationConfig: {responseMimeType: "application/json", responseSchema: schema, maxOutputTokens: 2048, thinkingConfig: {thinkingBudget: 0}},
+      };
+    }
+    const response = await fetch(endpoint, {method: "POST", headers, signal: AbortSignal.timeout(25000), body: JSON.stringify(request)});
     if (!response.ok)
       return json(response.status === 429 ? 429 : 502, {
         error:
           response.status === 429
-            ? "OpenAI ha raggiunto il limite di utilizzo. Verifica il credito o riprova più tardi."
-            : "OpenAI non ha completato la richiesta. Il proprietario può verificare chiave e modello nelle impostazioni di Netlify.",
+            ? (gemini ? "Gemini ha raggiunto il limite del piano. Attendi e riprova più tardi: non viene usato OpenAI come alternativa a pagamento." : "OpenAI ha raggiunto il limite di utilizzo. Verifica il credito o riprova più tardi.")
+            : `${provider} non ha completato la richiesta. Verifica chiave, disponibilità del modello e accesso al servizio.`,
       });
     const data = await response.json();
     let parsed;
     try {
-      parsed = JSON.parse(data.choices?.[0]?.message?.content || "");
+      parsed = JSON.parse((gemini ? data.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") : data.choices?.[0]?.message?.content) || "");
     } catch {
       return json(502, {
         error: "Risposta non disponibile. Riprova con una domanda più breve.",

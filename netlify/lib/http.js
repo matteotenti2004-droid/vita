@@ -84,7 +84,8 @@ export function publicConfig() {
   return {
     supabaseUrl: valid ? normalizedUrl : "",
     supabaseKey: valid ? key : "",
-    aiConfigured: Boolean(process.env.VYRA_AI_API_KEY),
+    aiConfigured: Boolean(process.env.VYRA_AI_PROVIDER === "gemini" ? process.env.GEMINI_API_KEY : process.env.GEMINI_API_KEY || process.env.VYRA_AI_API_KEY),
+    aiProvider: process.env.VYRA_AI_PROVIDER === "gemini" || (!process.env.VYRA_AI_PROVIDER && process.env.GEMINI_API_KEY) ? "Gemini" : "OpenAI",
     diagnostics: { status, missingVariables, message },
   };
 }

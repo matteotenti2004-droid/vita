@@ -257,3 +257,40 @@ test("Legacy anon JWT is supported while service_role JWT is rejected without le
     }
   }
 });
+
+test("Gemini uses a server-only key, structured replies and never falls back to paid OpenAI", async () => {
+  const oldFetch = global.fetch;
+  const keys = ["GEMINI_API_KEY", "VYRA_AI_PROVIDER", "VYRA_AI_API_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY"];
+  const old = Object.fromEntries(keys.map(k => [k, process.env[k]]));
+  Object.assign(process.env, {GEMINI_API_KEY:"gemini-secret-test", VYRA_AI_PROVIDER:"gemini", VYRA_AI_API_KEY:"paid-key-test", SUPABASE_URL:"https://project.supabase.co", SUPABASE_ANON_KEY:"sb_publishable_test"});
+  try {
+    const c = JSON.parse((await config({httpMethod:"GET"})).body);
+    assert.equal(c.aiProvider, "Gemini");
+    assert.ok(!JSON.stringify(c).includes("gemini-secret-test"));
+    let exhausted = false, calls = 0;
+    global.fetch = async (url, options) => {
+      if (String(url).includes("/auth/")) return new Response(JSON.stringify({id:"gemini-owner"}));
+      calls++;
+      assert.ok(String(url).startsWith("https://generativelanguage.googleapis.com/"));
+      assert.ok(!String(url).includes("gemini-secret-test"));
+      assert.equal(options.headers["x-goog-api-key"], "gemini-secret-test");
+      const body = JSON.parse(options.body);
+      assert.equal(body.contents.at(-1).parts[0].text, "Organizza");
+      assert.equal(body.generationConfig.responseMimeType, "application/json");
+      if (exhausted) return new Response("{}", {status:429});
+      return new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({reply:"Inizia da qui",tasks:[{title:"Studia",date:"",priority:"Alta",minutes:30}]})}]}}]}));
+    };
+    const req = {...event({question:"Organizza"}), headers:{...event({}).headers,authorization:"Bearer " + "x".repeat(25)}};
+    const reply = await assistant(req);
+    assert.equal(reply.statusCode, 200);
+    assert.equal(JSON.parse(reply.body).tasks[0].title, "Studia");
+    exhausted = true;
+    const limited = await assistant(req);
+    assert.equal(limited.statusCode, 429);
+    assert.match(JSON.parse(limited.body).error, /non viene usato OpenAI/);
+    assert.equal(calls, 2);
+  } finally {
+    global.fetch = oldFetch;
+    for (const key of keys) { if (old[key] === undefined) delete process.env[key]; else process.env[key] = old[key]; }
+  }
+});

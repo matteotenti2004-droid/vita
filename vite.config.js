@@ -6,6 +6,9 @@ export default defineConfig(({ mode }) => {
     "SUPABASE_ANON_KEY",
     "VYRA_AI_API_KEY",
     "VYRA_AI_MODEL",
+    "VYRA_AI_PROVIDER",
+    "GEMINI_API_KEY",
+    "VYRA_GEMINI_MODEL",
   ])
     if (env[key] && !process.env[key]) process.env[key] = env[key];
   return {
