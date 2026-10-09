@@ -187,3 +187,73 @@ test("Product requests reject untrusted origins and localhost links", async () =
   const blocked = await product(event({ url: "https://127.0.0.1" }));
   assert.equal(blocked.statusCode, 422);
 });
+
+test("Config diagnostics distinguish missing variables, malformed URL and wrong key without exposing rejected values", async () => {
+  const names = ["SUPABASE_URL", "SUPABASE_ANON_KEY"];
+  const previous = Object.fromEntries(names.map((k) => [k, process.env[k]]));
+  try {
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_ANON_KEY;
+    let data = JSON.parse((await config({ httpMethod: "GET" })).body);
+    assert.equal(data.diagnostics.status, "missing_variables");
+    assert.deepEqual(data.diagnostics.missingVariables, names);
+    process.env.SUPABASE_URL = "project-id-only";
+    process.env.SUPABASE_ANON_KEY = "sb_publishable_test";
+    data = JSON.parse((await config({ httpMethod: "GET" })).body);
+    assert.equal(data.diagnostics.status, "invalid_url");
+    assert.equal(data.supabaseKey, "");
+    process.env.SUPABASE_URL = "https://project.supabase.co";
+    process.env.SUPABASE_ANON_KEY = "sb_secret_do-not-expose";
+    const reply = (await config({ httpMethod: "GET" })).body;
+    data = JSON.parse(reply);
+    assert.equal(data.diagnostics.status, "invalid_key");
+    assert.equal(reply.includes("do-not-expose"), false);
+  } finally {
+    for (const key of names) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
+});
+
+test("Copied public configuration tolerates whitespace and a trailing slash, normalizing the project origin", async () => {
+  const names = ["SUPABASE_URL", "SUPABASE_ANON_KEY"];
+  const previous = Object.fromEntries(names.map((k) => [k, process.env[k]]));
+  try {
+    process.env.SUPABASE_URL = "  https://project.supabase.co/\n";
+    process.env.SUPABASE_ANON_KEY = " sb_publishable_test \n";
+    const data = JSON.parse((await config({ httpMethod: "GET" })).body);
+    assert.equal(data.diagnostics.status, "ready");
+    assert.equal(data.supabaseUrl, "https://project.supabase.co");
+    assert.equal(data.supabaseKey, "sb_publishable_test");
+  } finally {
+    for (const key of names) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
+});
+
+test("Legacy anon JWT is supported while service_role JWT is rejected without leaking it", async () => {
+  const names = ["SUPABASE_URL", "SUPABASE_ANON_KEY"];
+  const previous = Object.fromEntries(names.map((k) => [k, process.env[k]]));
+  try {
+    process.env.SUPABASE_URL = "https://project.supabase.co";
+    const token = (role) =>
+      "test." +
+      Buffer.from(JSON.stringify({ role })).toString("base64url") +
+      ".test";
+    process.env.SUPABASE_ANON_KEY = token("anon");
+    let data = JSON.parse((await config({ httpMethod: "GET" })).body);
+    assert.equal(data.diagnostics.status, "ready");
+    process.env.SUPABASE_ANON_KEY = token("service_role");
+    data = JSON.parse((await config({ httpMethod: "GET" })).body);
+    assert.equal(data.diagnostics.status, "invalid_key");
+    assert.equal(data.supabaseKey, "");
+  } finally {
+    for (const key of names) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
+});

@@ -32,9 +32,17 @@ export async function initCloud(callback) {
   onChange = callback;
   try {
     const r = await fetch("/.netlify/functions/config");
-    if (!r.ok) return;
+    if (!r.ok) {
+      cloud.error = `Il servizio di configurazione non risponde correttamente (HTTP ${r.status}).`;
+      return;
+    }
     const c = await r.json();
-    if (!c.supabaseUrl || !c.supabaseKey) return;
+    if (!c.supabaseUrl || !c.supabaseKey) {
+      cloud.error =
+        c.diagnostics?.message ||
+        "Il servizio account deve ancora essere configurato.";
+      return;
+    }
     cloud.client = createClient(c.supabaseUrl, c.supabaseKey);
     cloud.configured = true;
     cloud.client.auth.onAuthStateChange((event, session) => {

@@ -35,30 +35,57 @@ export function requestBody(event, max = 16000) {
   }
 }
 export function publicConfig() {
-  const url = process.env.SUPABASE_URL || "",
-    key = process.env.SUPABASE_ANON_KEY || "";
-  let valid = false;
+  const url = (process.env.SUPABASE_URL || "").trim(),
+    key = (process.env.SUPABASE_ANON_KEY || "").trim();
+  let urlValid = false,
+    keyValid = false,
+    normalizedUrl = "";
   try {
     const u = new URL(url);
-    valid =
+    urlValid =
       u.protocol === "https:" &&
       u.hostname.endsWith(".supabase.co") &&
       !u.username &&
       !u.password &&
       u.pathname === "/" &&
-      Boolean(key) &&
-      !key.startsWith("sb_secret_");
+      !u.search &&
+      !u.hash &&
+      !u.port;
+    normalizedUrl = u.origin;
+  } catch {}
+  try {
+    keyValid = /^sb_publishable_[A-Za-z0-9_-]+$/.test(key);
     if (key.split(".").length === 3) {
       const claims = JSON.parse(
         Buffer.from(key.split(".")[1], "base64url").toString(),
       );
-      if (claims.role !== "anon") valid = false;
+      keyValid = claims.role === "anon";
     }
   } catch {}
+  const missingVariables = [];
+  if (!url) missingVariables.push("SUPABASE_URL");
+  if (!key) missingVariables.push("SUPABASE_ANON_KEY");
+  const status = missingVariables.length
+    ? "missing_variables"
+    : !urlValid
+      ? "invalid_url"
+      : !keyValid
+        ? "invalid_key"
+        : "ready";
+  const message = {
+    missing_variables: `Le funzioni Netlify non ricevono ${missingVariables.join(" e ")}. Controlla i nomi delle variabili, il contesto Production e lo scope Functions.`,
+    invalid_url:
+      "SUPABASE_URL non contiene il Project URL valido. Usa l’indirizzo completo https://…supabase.co, non il Project ID né un link al pannello Supabase.",
+    invalid_key:
+      "SUPABASE_ANON_KEY non contiene una chiave Publishable o anon valida. Copia la chiave completa da Supabase → API Keys; non usare Secret o service_role.",
+    ready: "Il formato della configurazione account è valido.",
+  }[status];
+  const valid = urlValid && keyValid;
   return {
-    supabaseUrl: valid ? url : "",
+    supabaseUrl: valid ? normalizedUrl : "",
     supabaseKey: valid ? key : "",
     aiConfigured: Boolean(process.env.VYRA_AI_API_KEY),
+    diagnostics: { status, missingVariables, message },
   };
 }
 export async function authenticatedUser(event) {
