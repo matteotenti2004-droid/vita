@@ -1,3 +1,4 @@
+import { geminiError } from "../lib/ai-errors.js";
 import {
   json,
   requestBody,
@@ -118,13 +119,18 @@ export async function handler(event) {
       };
     }
     const response = await fetch(endpoint, {method: "POST", headers, signal: AbortSignal.timeout(25000), body: JSON.stringify(request)});
-    if (!response.ok)
+    if (!response.ok) {
+      if (gemini) {
+        const upstream = await response.json().catch(() => ({}));
+        return json(response.status === 429 ? 429 : 502, {error: geminiError(response.status, upstream)});
+      }
       return json(response.status === 429 ? 429 : 502, {
         error:
           response.status === 429
             ? (gemini ? "Gemini ha raggiunto il limite del piano. Attendi e riprova più tardi: non viene usato OpenAI come alternativa a pagamento." : "OpenAI ha raggiunto il limite di utilizzo. Verifica il credito o riprova più tardi.")
             : `${provider} non ha completato la richiesta. Verifica chiave, disponibilità del modello e accesso al servizio.`,
       });
+    }
     const data = await response.json();
     let parsed;
     try {
