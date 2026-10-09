@@ -264,6 +264,47 @@ try {
   await a.p
     .getByRole("button", { name: "Completa Studiare inglese", exact: true })
     .waitFor();
+  const failure = await setup();
+  try {
+    await failure.p.route(host + "/auth/v1/signup*", (route) =>
+      route.fulfill({
+        status: 400,
+        json: {
+          code: "email_address_not_authorized",
+          error_code: "email_address_not_authorized",
+          message: "Email address is not authorized",
+        },
+      }),
+    );
+    await failure.p.goto(base + "/#profile");
+    await failure.p.locator("#auth-form").waitFor();
+    await failure.p
+      .locator('[data-action="auth-mode"][data-mode="signup"]')
+      .click();
+    await failure.p
+      .locator("#auth-form")
+      .getByLabel("Nome", { exact: true })
+      .fill("Test");
+    await failure.p
+      .locator("#auth-form")
+      .getByLabel("Email", { exact: true })
+      .fill("test@example.test");
+    await failure.p
+      .locator("#auth-form")
+      .getByLabel("Password", { exact: true })
+      .fill("test-password");
+    await failure.p.locator('#auth-form button[type="submit"]').click();
+    await failure.p
+      .locator("#auth-form .form-error")
+      .filter({ hasText: "SMTP" })
+      .waitFor();
+    assert.equal(
+      await failure.p.locator('#auth-form button[type="submit"]').isEnabled(),
+      true,
+    );
+  } finally {
+    await failure.c.close();
+  }
   assert.deepEqual(errors, []);
   console.log(
     "PASS: email login via Supabase SDK, guest isolation, account isolation, cloud insert/update, cross-device loading, revision conflicts, explicit conflict recovery, logout, authenticated AI proposal and confirmed task. Services mocked; production credentials still required.",

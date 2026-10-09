@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { authError } from "./auth-errors.js";
 import { initial, normalize, persist } from "./store.js";
 export const cloud = {
   client: null,
@@ -18,16 +19,6 @@ let onChange = () => {},
   queued = false;
 const cacheKey = () => `vyra-account-${cloud.user.id}`;
 const dirtyKey = () => `${cacheKey()}-pending`;
-const translate = (e) =>
-  /Invalid login/i.test(e.message)
-    ? "Email o password non corrette."
-    : /already registered/i.test(e.message)
-      ? "Questa email è già registrata."
-      : /rate limit/i.test(e.message)
-        ? "Troppe richieste: riprova tra poco."
-        : /Password/i.test(e.message)
-          ? "La password deve avere almeno 8 caratteri."
-          : "Il servizio non è disponibile. Verifica la connessione o riprova.";
 export async function initCloud(callback) {
   onChange = callback;
   try {
@@ -224,18 +215,18 @@ export async function authenticate(mode, email, password, name) {
           options: { data: { name }, emailRedirectTo: location.origin },
         })
       : await cloud.client.auth.signInWithPassword({ email, password });
-  if (result.error) throw new Error(translate(result.error));
+  if (result.error) throw new Error(authError(result.error));
   return result.data;
 }
 export async function resetPassword(email) {
   const { error } = await cloud.client.auth.resetPasswordForEmail(email, {
     redirectTo: location.origin,
   });
-  if (error) throw new Error(translate(error));
+  if (error) throw new Error(authError(error));
 }
 export async function newPassword(password) {
   const { error } = await cloud.client.auth.updateUser({ password });
-  if (error) throw new Error(translate(error));
+  if (error) throw new Error(authError(error));
   cloud.recovery = false;
 }
 export async function signOut() {
